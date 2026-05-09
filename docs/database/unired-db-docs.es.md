@@ -38,6 +38,17 @@
 │   usuario)    │ │ fec_resp │ │   comentario)    │
 └──────────────┘ └──────────┘ └──────────────────┘
 
+┌──────────────────┐  ┌──────────────┐
+│ comment_likes    │  │   replies    │
+│──────────────────│  │──────────────│
+│ PK like_id       │  │ PK reply_id  │
+│ FK comment_id ───┤  │ FK comment_id│
+│ FK user_id ──────┤  │ FK user_id   │
+│ liked_at         │  │ content      │
+│ UNIQUE(comment,  │  │ created_at   │
+│   usuario)       │  │ active       │
+└──────────────────┘  └──────────────┘
+
 ┌──────────────┐   ┌────────────────────┐
 │   friends    │   │ user_update_log    │
 │──────────────│   │────────────────────│
@@ -152,7 +163,42 @@ Registra los "me gusta" (reacciones) en publicaciones. Impone un like por usuari
 
 ---
 
-### 6. `friend_requests` (Solicitudes de amistad)
+### 6. `comment_likes` (Me gusta en comentarios)
+
+Registra los "me gusta" (reacciones) en comentarios. Impone un like por usuario por comentario.
+
+| Columna | Tipo | Restricciones | Valor por defecto | Descripción |
+|---------|------|---------------|-------------------|-------------|
+| `like_id` | INT | PK, AUTO_INCREMENT | — | Identificador único del like |
+| `comment_id` | INT | FK → comments(comment_id), NOT NULL | — | Comentario al que se dio like |
+| `user_id` | INT | FK → users(user_id), NOT NULL | — | Usuario que dio like |
+| `liked_at` | DATETIME | — | `CURRENT_TIMESTAMP` | Fecha del like |
+
+**Claves foráneas:** `comment_id` → `comments(comment_id)` ON DELETE CASCADE, `user_id` → `users(user_id)` ON DELETE CASCADE.  
+**Restricción única:** `(comment_id, user_id)` — evita likes duplicados en el mismo comentario.  
+**Índices:** PK en `like_id`, UNIQUE en `(comment_id, user_id)`.
+
+---
+
+### 7. `replies` (Respuestas)
+
+Respuestas a comentarios. Cada respuesta pertenece a un comentario padre. Soporta borrado lógico mediante la bandera `active`.
+
+| Columna | Tipo | Restricciones | Valor por defecto | Descripción |
+|---------|------|---------------|-------------------|-------------|
+| `reply_id` | INT | PK, AUTO_INCREMENT | — | Identificador único de la respuesta |
+| `comment_id` | INT | FK → comments(comment_id), NOT NULL | — | Comentario padre |
+| `user_id` | INT | FK → users(user_id), NOT NULL | — | Autor de la respuesta |
+| `content` | TEXT | NOT NULL | — | Texto de la respuesta |
+| `created_at` | DATETIME | — | `CURRENT_TIMESTAMP` | Fecha de creación |
+| `active` | BOOLEAN | — | `TRUE` | Bandera de borrado lógico (0 = eliminado) |
+
+**Claves foráneas:** `comment_id` → `comments(comment_id)` ON DELETE CASCADE, `user_id` → `users(user_id)` ON DELETE CASCADE.  
+**Índices:** PK en `reply_id`.
+
+---
+
+### 8. `friend_requests` (Solicitudes de amistad)
 
 Gestiona el flujo de solicitudes de amistad entre dos usuarios.
 
@@ -170,7 +216,7 @@ Gestiona el flujo de solicitudes de amistad entre dos usuarios.
 
 ---
 
-### 7. `friends` (Amistades)
+### 9. `friends` (Amistades)
 
 Representa los pares de amistad confirmada entre dos usuarios.
 
@@ -187,7 +233,7 @@ Representa los pares de amistad confirmada entre dos usuarios.
 
 ---
 
-### 8. `user_update_log` (Registro de cambios de usuario)
+### 10. `user_update_log` (Registro de cambios de usuario)
 
 Bitácora de auditoría que registra los cambios en los campos de perfil cada vez que se actualiza un usuario.
 
@@ -283,6 +329,7 @@ Filtros: Solo publicaciones activas (`p.active = 1`). Ordenado por `created_at D
 |------|-------|----------|-------|
 | UNIQUE | `users` | `email` | Sin correos duplicados |
 | UNIQUE | `likes` | `(post_id, user_id)` | Un like por usuario por publicación |
+| UNIQUE | `comment_likes` | `(comment_id, user_id)` | Un like por usuario por comentario |
 | UNIQUE | `hidden_comments` | `(user_id, comment_id)` | Un ocultamiento por usuario por comentario |
 | UNIQUE | `friends` | `(user_id1, user_id2)` | Sin pares de amistad duplicados |
 

@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS hidden_comments (
     UNIQUE (user_id, comment_id)
 ) ENGINE=InnoDB;
 
+
 -- TABLA likes
 CREATE TABLE IF NOT EXISTS likes (
     like_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -59,6 +60,29 @@ CREATE TABLE IF NOT EXISTS likes (
     FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     UNIQUE (post_id, user_id)
+) ENGINE=InnoDB;
+
+-- TABLA comment_likes
+CREATE TABLE IF NOT EXISTS comment_likes (
+    like_id     INT AUTO_INCREMENT PRIMARY KEY,
+    comment_id  INT NOT NULL,
+    user_id     INT NOT NULL,
+    liked_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)    REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE (comment_id, user_id)
+) ENGINE=InnoDB;
+
+-- TABLA replies
+CREATE TABLE IF NOT EXISTS replies (
+    reply_id    INT AUTO_INCREMENT PRIMARY KEY,
+    comment_id  INT NOT NULL,                    -- parent comment
+    user_id     INT NOT NULL,
+    content     TEXT NOT NULL,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    active      BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)    REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- TABLA friend_requests

@@ -38,6 +38,17 @@
 │   user)       │ │ resp_date│ │   comment)       │
 └──────────────┘ └──────────┘ └──────────────────┘
 
+┌──────────────────┐  ┌──────────────┐
+│ comment_likes    │  │   replies    │
+│──────────────────│  │──────────────│
+│ PK like_id       │  │ PK reply_id  │
+│ FK comment_id ───┤  │ FK comment_id│
+│ FK user_id ──────┤  │ FK user_id   │
+│ liked_at         │  │ content      │
+│ UNIQUE(comment,  │  │ created_at   │
+│   user)          │  │ active       │
+└──────────────────┘  └──────────────┘
+
 ┌──────────────┐   ┌────────────────────┐
 │   friends    │   │ user_update_log    │
 │──────────────│   │────────────────────│
@@ -152,7 +163,42 @@ Records likes (reactions) on posts by users. Enforces one like per user per post
 
 ---
 
-### 6. `friend_requests`
+### 6. `comment_likes`
+
+Records likes (reactions) on comments by users. Enforces one like per user per comment.
+
+| Column | Type | Constraints | Default | Description |
+|--------|------|-------------|---------|-------------|
+| `like_id` | INT | PK, AUTO_INCREMENT | — | Unique like identifier |
+| `comment_id` | INT | FK → comments(comment_id), NOT NULL | — | Liked comment |
+| `user_id` | INT | FK → users(user_id), NOT NULL | — | User who liked |
+| `liked_at` | DATETIME | — | `CURRENT_TIMESTAMP` | Like timestamp |
+
+**Foreign Keys:** `comment_id` → `comments(comment_id)` ON DELETE CASCADE, `user_id` → `users(user_id)` ON DELETE CASCADE.  
+**Unique Constraint:** `(comment_id, user_id)` — prevents duplicate likes on the same comment.  
+**Indexes:** PK on `like_id`, UNIQUE on `(comment_id, user_id)`.
+
+---
+
+### 7. `replies`
+
+Replies to comments. Each reply belongs to a parent comment. Supports soft delete via `active` flag.
+
+| Column | Type | Constraints | Default | Description |
+|--------|------|-------------|---------|-------------|
+| `reply_id` | INT | PK, AUTO_INCREMENT | — | Unique reply identifier |
+| `comment_id` | INT | FK → comments(comment_id), NOT NULL | — | Parent comment |
+| `user_id` | INT | FK → users(user_id), NOT NULL | — | Reply author |
+| `content` | TEXT | NOT NULL | — | Reply text |
+| `created_at` | DATETIME | — | `CURRENT_TIMESTAMP` | Reply creation timestamp |
+| `active` | BOOLEAN | — | `TRUE` | Soft delete flag (0 = deleted) |
+
+**Foreign Keys:** `comment_id` → `comments(comment_id)` ON DELETE CASCADE, `user_id` → `users(user_id)` ON DELETE CASCADE.  
+**Indexes:** PK on `reply_id`.
+
+---
+
+### 8. `friend_requests`
 
 Manages the friend request workflow between two users.
 
@@ -170,7 +216,7 @@ Manages the friend request workflow between two users.
 
 ---
 
-### 7. `friends`
+### 9. `friends`
 
 Represents confirmed friendship pairs between two users.
 
@@ -187,7 +233,7 @@ Represents confirmed friendship pairs between two users.
 
 ---
 
-### 8. `user_update_log`
+### 10. `user_update_log`
 
 Audit trail that records changes to user profile fields on every update.
 
@@ -283,6 +329,7 @@ Filters: Only active posts (`p.active = 1`). Ordered by `created_at DESC` (newes
 |------|-------|---------|-------|
 | UNIQUE | `users` | `email` | No duplicate emails |
 | UNIQUE | `likes` | `(post_id, user_id)` | One like per user per post |
+| UNIQUE | `comment_likes` | `(comment_id, user_id)` | One like per user per comment |
 | UNIQUE | `hidden_comments` | `(user_id, comment_id)` | One hide per user per comment |
 | UNIQUE | `friends` | `(user_id1, user_id2)` | No duplicate friendship pairs |
 
